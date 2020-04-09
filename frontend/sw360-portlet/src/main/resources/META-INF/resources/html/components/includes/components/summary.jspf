@@ -64,7 +64,7 @@
     </tr>
     <tr>
         <td>External ids:</td>
-        <td><sw360:DisplayMap value="${component.externalIds}"/></td>
+        <td><sw360:DisplayMapOfExternalIdsString value="${component.externalIds}"/></td>
     </tr>
     <tr>
         <td>Additional Data:</td>

@@ -9,6 +9,8 @@
  */
 package org.eclipse.sw360.portal.common;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 import com.liferay.portal.kernel.json.JSONArray;
@@ -49,6 +51,7 @@ import static java.lang.Math.min;
 import static com.google.common.base.Strings.isNullOrEmpty;
 import static java.lang.Integer.parseInt;
 import static org.eclipse.sw360.datahandler.common.CommonUtils.*;
+import static org.eclipse.sw360.datahandler.common.CommonUtils.isNullEmptyOrWhitespace;
 
 /**
  * Portlet helpers
@@ -362,6 +365,22 @@ public class PortletUtils {
         return customMap;
     }
 
+    public static Map<String,String> getMapWithJoinedValueFromRequest(PortletRequest request, String key, String value) {
+        Map<String, Set<String>> customMap = getCustomMapFromRequest(request, key, value);
+        return customMap.entrySet().stream()
+                .collect(Collectors.toMap(Map.Entry::getKey,
+                        e -> {
+                            try {
+                                ObjectMapper mapper = new ObjectMapper();
+                                return mapper.writeValueAsString(e.getValue());
+                            } catch (JsonProcessingException ex) {
+                                return e.getValue().stream()
+                                        .findFirst()
+                                        .orElse("");
+                            }
+                        }));
+    }
+
     public static Map<String,String> getMapFromRequest(PortletRequest request, String key, String value) {
         Map<String, Set<String>> customMap = getCustomMapFromRequest(request, key, value);
         return customMap.entrySet().stream()
@@ -372,7 +391,7 @@ public class PortletUtils {
     }
 
     public static Map<String,String> getExternalIdMapFromRequest(PortletRequest request) {
-        return getMapFromRequest(request, PortalConstants.EXTERNAL_ID_KEY, PortalConstants.EXTERNAL_ID_VALUE);
+        return getMapWithJoinedValueFromRequest(request, PortalConstants.EXTERNAL_ID_KEY, PortalConstants.EXTERNAL_ID_VALUE);
     }
 
     public static Map<String,String> getAdditionalDataMapFromRequest(PortletRequest request) {

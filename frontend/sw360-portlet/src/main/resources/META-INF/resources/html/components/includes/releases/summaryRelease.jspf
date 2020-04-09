@@ -79,7 +79,7 @@
         </tr>
         <tr>
             <td>External ids:</td>
-            <td><sw360:DisplayMap value="${release.externalIds}"/></td>
+            <td><sw360:DisplayMapOfExternalIdsString value="${release.externalIds}"/></td>
         </tr>
         <tr>
             <td>Additional Data:</td>
