@@ -27,7 +27,9 @@ import com.liferay.portal.kernel.servlet.SessionMessages;
 import com.liferay.portal.kernel.theme.ThemeDisplay;
 import com.liferay.portal.kernel.util.ContentTypes;
 import com.liferay.portal.kernel.util.PortalUtil;
+import com.liferay.portal.kernel.util.ResourceBundleUtil;
 import com.liferay.portal.kernel.util.WebKeys;
+import com.liferay.portal.kernel.language.LanguageUtil;
 
 import org.eclipse.sw360.datahandler.common.*;
 import org.eclipse.sw360.datahandler.common.WrappedException.WrappedTException;
@@ -55,14 +57,11 @@ import org.eclipse.sw360.datahandler.thrift.vendors.VendorService;
 import org.eclipse.sw360.datahandler.thrift.vulnerabilities.*;
 import org.eclipse.sw360.exporter.ComponentExporter;
 import org.eclipse.sw360.portal.common.*;
-import org.eclipse.sw360.portal.common.customfields.CustomField;
-import org.eclipse.sw360.portal.common.customfields.CustomFieldPageIdentifier;
 import org.eclipse.sw360.portal.common.datatables.PaginationParser;
 import org.eclipse.sw360.portal.common.datatables.data.PaginationParameters;
 import org.eclipse.sw360.portal.portlets.FossologyAwarePortlet;
 import org.eclipse.sw360.portal.users.LifeRayUserSession;
 import org.eclipse.sw360.portal.users.UserCacheHolder;
-
 import org.apache.log4j.Logger;
 import org.apache.thrift.TEnum;
 import org.apache.thrift.TException;
@@ -107,7 +106,7 @@ import static org.eclipse.sw360.portal.common.PortletUtils.getVerificationState;
         "javax.portlet.display-name=Components",
         "javax.portlet.info.short-title=Components",
         "javax.portlet.info.title=Components",
-
+        "javax.portlet.resource-bundle=content.Language",
         "javax.portlet.init-param.view-template=/html/components/view.jsp",
     },
     service = Portlet.class,
@@ -219,6 +218,12 @@ public class ComponentPortlet extends FossologyAwarePortlet {
             importBom(request, response);
         } else if (isGenericAction(action)) {
             dealWithGenericAction(request, response, action);
+        } else if (PortalConstants.LOAD_CHANGE_LOGS.equals(action) || PortalConstants.VIEW_CHANGE_LOGS.equals(action)) {
+            ChangeLogsPortletUtils changeLogsPortletUtilsPortletUtils = PortletUtils
+                    .getChangeLogsPortletUtils(thriftClients);
+            JSONObject dataForChangeLogs = changeLogsPortletUtilsPortletUtils.serveResourceForChangeLogs(request,
+                    response, action);
+            writeJSON(request, response, dataForChangeLogs);
         }
     }
 
@@ -527,6 +532,8 @@ public class ComponentPortlet extends FossologyAwarePortlet {
     }
 
     private void loadSpdxLicenseInfo(ResourceRequest request, ResourceResponse response) {
+        ResourceBundle resourceBundle = ResourceBundleUtil.getBundle("content.Language", request.getLocale(), getClass());
+
         User user = UserCacheHolder.getUserFromRequest(request);
         String releaseId = request.getParameter(PortalConstants.RELEASE_ID);
         String attachmentContentId = request.getParameter(PortalConstants.ATTACHMENT_ID);
@@ -563,7 +570,7 @@ public class ComponentPortlet extends FossologyAwarePortlet {
             JsonGenerator jsonGenerator = JSON_FACTORY.createGenerator(response.getWriter());
             jsonGenerator.writeStartObject();
             if (concludedLicenseIds.size() > 0) {
-                jsonGenerator.writeStringField(LICENSE_PREFIX, "Concluded License Ids:");
+                jsonGenerator.writeStringField(LICENSE_PREFIX, LanguageUtil.get(resourceBundle,"concluded.license.ids"));
                 jsonGenerator.writeArrayFieldStart("licenseIds");
                 concludedLicenseIds.forEach(licenseId -> {
                     try {
@@ -574,7 +581,7 @@ public class ComponentPortlet extends FossologyAwarePortlet {
                 });
                 jsonGenerator.writeEndArray();
             } else if (licenseWithText != null) {
-                jsonGenerator.writeStringField(LICENSE_PREFIX, "Main License Id:");
+                jsonGenerator.writeStringField(LICENSE_PREFIX, LanguageUtil.get(resourceBundle,"main.license.id"));
                 jsonGenerator.writeArrayFieldStart("licenseIds");
                 jsonGenerator.writeString(licenseWithText.getLicenseSpdxId());
                 jsonGenerator.writeEndArray();
@@ -648,24 +655,18 @@ public class ComponentPortlet extends FossologyAwarePortlet {
     }
 
     private void prepareComponentEdit(RenderRequest request) {
+        ResourceBundle resourceBundle = ResourceBundleUtil.getBundle("content.Language", request.getLocale(), getClass());
+
         String id = request.getParameter(COMPONENT_ID);
         final User user = UserCacheHolder.getUserFromRequest(request);
-
-        Map<String, CustomField> customFieldMap = CustomFieldHelper.getCustomFields(request, user, CustomFieldPageIdentifier.COMPONENT);
         request.setAttribute(DOCUMENT_TYPE, SW360Constants.TYPE_COMPONENT);
         if (id != null) {
             try {
                 ComponentService.Iface client = thriftClients.makeComponentClient();
                 Component component = client.getComponentByIdForEdit(id, user);
-                Map<String, String> additionalData = component.getAdditionalData();
-                Iterator<Map.Entry<String,String>> iter = additionalData.entrySet().iterator();
-                while(iter.hasNext()) {
-                    Map.Entry<String, String> entry = iter.next();
-                    if(customFieldMap.containsKey(entry.getKey())){
-                        customFieldMap.get(entry.getKey()).setValue(entry.getValue());
-                        iter.remove();
-                    }
-                }
+
+                PortletUtils.setCustomFieldsEdit(request, user, component);
+
                 request.setAttribute(COMPONENT, component);
                 request.setAttribute(DOCUMENT_ID, id);
 
@@ -684,17 +685,17 @@ public class ComponentPortlet extends FossologyAwarePortlet {
             if(request.getAttribute(COMPONENT) == null) {
                 Component component = new Component();
                 request.setAttribute(COMPONENT, component);
+                PortletUtils.setCustomFieldsEdit(request, user, component);
                 setUsingDocs(request, user, null, component.getReleaseIds());
                 setAttachmentsInRequest(request, component);
-                SessionMessages.add(request, "request_processed", "New Component");
+                SessionMessages.add(request, "request_processed", LanguageUtil.get(resourceBundle,"new.component"));
             }
         }
-        List<CustomField> customFields = new ArrayList<>(customFieldMap.values());
-        customFields.sort(Comparator.comparing(CustomField::getFieldId));
-        request.setAttribute("customFields", customFields);
     }
 
     private void prepareReleaseEdit(RenderRequest request, RenderResponse response) throws PortletException {
+        ResourceBundle resourceBundle = ResourceBundleUtil.getBundle("content.Language", request.getLocale(), getClass());
+
         String id = request.getParameter(COMPONENT_ID);
         String releaseId = request.getParameter(RELEASE_ID);
         final User user = UserCacheHolder.getUserFromRequest(request);
@@ -705,7 +706,6 @@ public class ComponentPortlet extends FossologyAwarePortlet {
             throw new PortletException("Component or Release ID not set!");
         }
 
-        Map<String, CustomField> customFieldMap = CustomFieldHelper.getCustomFields(request, user, CustomFieldPageIdentifier.RELEASE);
         try {
             ComponentService.Iface client = thriftClients.makeComponentClient();
             Component component;
@@ -713,15 +713,6 @@ public class ComponentPortlet extends FossologyAwarePortlet {
 
             if (!isNullOrEmpty(releaseId)) {
                 release = client.getReleaseByIdForEdit(releaseId, user);
-                Map<String, String> additionalData = release.getAdditionalData();
-                Iterator<Map.Entry<String,String>> iter = additionalData.entrySet().iterator();
-                while(iter.hasNext()) {
-                    Map.Entry<String, String> entry = iter.next();
-                    if(customFieldMap.containsKey(entry.getKey())){
-                        customFieldMap.get(entry.getKey()).setValue(entry.getValue());
-                        iter.remove();
-                    }
-                }
                 request.setAttribute(RELEASE, release);
                 request.setAttribute(DOCUMENT_ID, releaseId);
                 setAttachmentsInRequest(request, release);
@@ -750,11 +741,11 @@ public class ComponentPortlet extends FossologyAwarePortlet {
                     putDirectlyLinkedReleaseRelationsInRequest(request, release);
                     setAttachmentsInRequest(request, release);
                     setUsingDocs(request, null, user, client);
-                    SessionMessages.add(request, "request_processed", "New Release");
+                    SessionMessages.add(request, "request_processed", LanguageUtil.get(resourceBundle,"new.license"));
                 }
             }
 
-
+            PortletUtils.setCustomFieldsEdit(request, user, release);
             addComponentBreadcrumb(request, response, component);
             if (!isNullOrEmpty(release.getId())) { //Otherwise the link is meaningless
                 addReleaseBreadcrumb(request, response, release);
@@ -767,9 +758,6 @@ public class ComponentPortlet extends FossologyAwarePortlet {
                 request.setAttribute(COMPONENT_PURL, "");
             }
 
-            List<CustomField> customFields = new ArrayList<>(customFieldMap.values());
-            customFields.sort(Comparator.comparing(CustomField::getFieldId));
-            request.setAttribute("customFields", customFields);
             request.setAttribute(COMPONENT, component);
             request.setAttribute(IS_USER_AT_LEAST_ECC_ADMIN, PermissionUtils.isUserAtLeast(UserGroup.ECC_ADMIN, user) ? "Yes" : "No");
 
@@ -791,29 +779,18 @@ public class ComponentPortlet extends FossologyAwarePortlet {
         }
 
         try {
-            Map<String, CustomField> customFieldMap = CustomFieldHelper.getCustomFields(request, user, CustomFieldPageIdentifier.RELEASE);
             ComponentService.Iface client = thriftClients.makeComponentClient();
             String emailFromRequest = LifeRayUserSession.getEmailFromRequest(request);
 
             Release release = PortletUtils.cloneRelease(emailFromRequest, client.getReleaseById(releaseId, user));
 
-            Map<String, String> additionalData = release.getAdditionalData();
-            Iterator<Map.Entry<String,String>> iter = additionalData.entrySet().iterator();
-            while(iter.hasNext()) {
-                Map.Entry<String, String> entry = iter.next();
-                if(customFieldMap.containsKey(entry.getKey())){
-                    customFieldMap.get(entry.getKey()).setValue(entry.getValue());
-                    iter.remove();
-                }
-            }
+            PortletUtils.setCustomFieldsEdit(request, user, release);
+
             if (isNullOrEmpty(id)) {
                 id = release.getComponentId();
             }
             Component component = client.getComponentById(id, user);
             addComponentBreadcrumb(request, response, component);
-            List<CustomField> customFields = new ArrayList<>(customFieldMap.values());
-            customFields.sort(Comparator.comparing(CustomField::getFieldId));
-            request.setAttribute("customFields", customFields);
             request.setAttribute(COMPONENT, component);
             request.setAttribute(RELEASE_LIST, Collections.emptyList());
             setUsingDocs(request, null, user, client);
@@ -1212,6 +1189,7 @@ public class ComponentPortlet extends FossologyAwarePortlet {
                 ComponentService.Iface client = thriftClients.makeComponentClient();
                 Component component = client.getComponentById(id, user);
 
+                PortletUtils.setCustomFieldsDisplay(request, user, component);
                 request.setAttribute(COMPONENT, component);
                 request.setAttribute(DOCUMENT_ID, id);
                 request.setAttribute(DOCUMENT_TYPE, SW360Constants.TYPE_COMPONENT);
@@ -1282,6 +1260,8 @@ public class ComponentPortlet extends FossologyAwarePortlet {
                     fossologyJobsViewLink = createFossologyJobViewLink(processStep, configKeyToValues,
                             fossologyJobsViewLink);
                 }
+
+                PortletUtils.setCustomFieldsDisplay(request, user, release);
 
                 request.setAttribute(FOSSOLOGY_JOB_VIEW_LINK, fossologyJobsViewLink);
                 request.setAttribute(RELEASE_ID, releaseId);

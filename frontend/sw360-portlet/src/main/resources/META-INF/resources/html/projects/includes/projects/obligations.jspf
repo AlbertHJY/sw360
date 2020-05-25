@@ -35,15 +35,15 @@
         <thead>
             <tr>
                 <th class="more-info">
-                    <span title="Expand all" data-show="false">&#x25BA</span>
+                    <span title="<liferay-ui:message key="expand.all" />" data-show="false">&#x25BA</span>
                 </th>
-                <th>Obligation</th>
-                <th>Licenses</th>
-                <th>Releases</th>
-                <th>Status</th>
+                <th><liferay-ui:message key="obligation" /></th>
+                <th><liferay-ui:message key="licenses" /></th>
+                <th><liferay-ui:message key="releases" /></th>
+                <th><liferay-ui:message key="status" /></th>
                 <!-- Commented code for obligation action, until action select options are provided -->
                 <!-- <th>Action</th> -->
-                <th>Comment</th>
+                <th><liferay-ui:message key="comment" /></th>
             </tr>
         </thead>
         <tbody>
@@ -76,7 +76,6 @@ require(['jquery', 'bridges/datatables', 'utils/render'], function ($, datatable
         </core_rt:if>
 
         obligationJSON.push({
-            "DT_RowId": "${entry.key}",
             "obligation": '${entry.key}',
             "lIds": licenseIds.join(', <br>'),
             "rIds": releaseIds,
@@ -129,6 +128,12 @@ require(['jquery', 'bridges/datatables', 'utils/render'], function ($, datatable
                     } else if (status === 'To be fulfilled by parent project') {
                         $(td).addClass('text-info');
                     }
+                }
+            },
+            {
+                "targets": 5,
+                "createdCell": function (td, cellData, rowData, row, col) {
+                    $(td).css('max-width', '15rem');
                 }
             }
         ],
@@ -195,15 +200,5 @@ require(['jquery', 'bridges/datatables', 'utils/render'], function ($, datatable
         render.toggleAllChildRows($(this), table);
     });
 
-    /*
-     * Define function for child row creation, which will contain additional data for a clicked table row
-     */
-    function createChildRow(rowData) {
-        var childHtmlString = '' +
-            '<div>' +
-            '<span>' + rowData.text + '</span>' +
-            '</div>';
-        return childHtmlString;
-    }
 });
 </script>
