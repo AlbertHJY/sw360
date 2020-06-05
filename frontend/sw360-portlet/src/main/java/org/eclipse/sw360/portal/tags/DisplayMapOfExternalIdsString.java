@@ -61,7 +61,7 @@ public class DisplayMapOfExternalIdsString extends SimpleTagSupport {
     private static String getExternalIdsString(String externalIdKey, String externalIdValues) {
         StringBuilder sb = new StringBuilder();
         ObjectMapper mapper = new ObjectMapper();
-        Set<String> externalIdValueSet = new HashSet<>();
+        Set<String> externalIdValueSet = new TreeSet<>();
         try {
             externalIdValueSet = mapper.readValue(externalIdValues, Set.class);
         } catch (IOException e) {
@@ -69,10 +69,10 @@ public class DisplayMapOfExternalIdsString extends SimpleTagSupport {
         }
         externalIdValueSet.forEach( e ->
                 sb.append("<li><span class=\"mapDisplayChildItemLeft\">")
-                        .append(externalIdKey)
-                        .append("</span><span class=\"mapDisplayChildItemRight\"> ")
-                        .append(e)
-                        .append("</span></li>")
+                  .append(externalIdKey)
+                  .append("</span><span class=\"mapDisplayChildItemRight\">")
+                  .append(e)
+                  .append("</span></li>")
         );
         return sb.toString();
     }

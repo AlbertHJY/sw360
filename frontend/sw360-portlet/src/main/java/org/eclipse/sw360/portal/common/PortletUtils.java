@@ -377,6 +377,11 @@ public class PortletUtils {
                 .collect(Collectors.toMap(Map.Entry::getKey,
                         e -> {
                             try {
+                                if(!isNotEmpty(e.getValue()) && e.getValue().size() == 1) {
+                                    return e.getValue().stream()
+                                            .findFirst()
+                                            .orElse("");
+                                }
                                 ObjectMapper mapper = new ObjectMapper();
                                 return mapper.writeValueAsString(e.getValue());
                             } catch (JsonProcessingException ex) {
