@@ -144,7 +144,14 @@ public class ProjectRepository extends SummaryAwareRepository<Project> {
             "function(doc) {" +
                     "  if (doc.type == 'project') {" +
                     "    for (var externalId in doc.externalIds) {" +
-                    "       emit( [externalId, doc.externalIds[externalId]] , doc._id);" +
+                    "      try {" +
+                    "            var valueArray = JSON.parse(doc.externalIds[externalId]);" +
+                    "            for (var value in valueArray) {" +
+                    "              emit( [externalId, value], doc._id);" +
+                    "            }" +
+                    "      } catch(error) {" +
+                    "          emit( [externalId, doc.externalIds[externalId]], doc._id);" +
+                    "      }" +
                     "    }" +
                     "  }" +
                     "}";
