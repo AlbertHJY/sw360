@@ -70,7 +70,7 @@ public class DisplayMapOfExternalIdsString extends SimpleTagSupport {
         externalIdValueSet.forEach( e ->
                 sb.append("<li><span class=\"mapDisplayChildItemLeft\">")
                   .append(externalIdKey)
-                  .append("</span><span class=\"mapDisplayChildItemRight\">")
+                  .append("</span><span class=\"mapDisplayChildItemRight\"> ")
                   .append(e)
                   .append("</span></li>")
         );
