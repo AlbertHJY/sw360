@@ -100,9 +100,9 @@ import java.util.*;
                         "  if (doc.type == 'component') {" +
                         "    for (var externalId in doc.externalIds) {" +
                         "      try {" +
-                        "            var valueArray = JSON.parse(doc.externalIds[externalId]);" +
-                        "            for (var value in valueArray) {" +
-                        "              emit( [externalId, value], doc._id);" +
+                        "            var values = JSON.parse(doc.externalIds[externalId]);" +
+                        "            for (var idx in values) {" +
+                        "              emit( [externalId, values[idx]], doc._id);" +
                         "            }" +
                         "      } catch(error) {" +
                         "          emit( [externalId, doc.externalIds[externalId]], doc._id);" +
